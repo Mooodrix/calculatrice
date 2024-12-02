@@ -151,64 +151,35 @@ fun evaluateSimpleExpression(expression: String): Double {
     var i = 0
 
     while (i < expression.length) {
-        when (val ch = expression[i]) {
-            in '0'..'9' -> { // Gérer les nombres
+        val ch = expression[i]
+        when {
+            ch in '0'..'9' || (ch == '-' && (values.isEmpty() || (expression.getOrNull(i - 1) ?: ' ') in "+-*/(")) -> {
                 var num = 0.0
-                while (i < expression.length && expression[i] in '0'..'9') {
+                val isNegative = (ch == '-').also { if (it) i++ }
+                while (i < expression.length && expression[i] in '0'..'9')
                     num = num * 10 + (expression[i++] - '0')
-                }
-                if (i < expression.length && expression[i] == '.') { // Gérer les décimales
+                if (i < expression.length && expression[i] == '.') {
                     var decimalPlace = 0.1
                     i++
-                    while (i < expression.length && expression[i] in '0'..'9') {
-                        num += (expression[i++] - '0') * decimalPlace
-                        decimalPlace *= 0.1
-                    }
+                    while (i < expression.length && expression[i] in '0'..'9')
+                        num += (expression[i++] - '0') * decimalPlace.also { decimalPlace *= 0.1 }
                 }
-                values.push(num)
+                values.push(if (isNegative) -num else num)
                 i--
             }
-            '-' -> { // Vérifier si c'est un signe négatif ou un opérateur
-                if (values.isEmpty() || expression[i - 1] in "+-*/(") {
-                    // C'est un nombre négatif
-                    i++
-                    var num = 0.0
-                    while (i < expression.length && expression[i] in '0'..'9') {
-                        num = num * 10 + (expression[i++] - '0')
-                    }
-                    if (i < expression.length && expression[i] == '.') {
-                        var decimalPlace = 0.1
-                        i++
-                        while (i < expression.length && expression[i] in '0'..'9') {
-                            num += (expression[i++] - '0') * decimalPlace
-                            decimalPlace *= 0.1
-                        }
-                    }
-                    values.push(-num)
-                    i--
-                } else {
-                    // C'est un opérateur
-                    while (operators.isNotEmpty() && precedence(operators.peek()) >= precedence(ch)) {
-                        values.push(applyOp(operators.pop(), values.pop(), values.pop()))
-                    }
-                    operators.push(ch)
-                }
-            }
-            '+', '*', '/' -> { // Gérer les autres opérateurs
-                while (operators.isNotEmpty() && precedence(operators.peek()) >= precedence(ch)) {
+            ch in "+-*/" -> {
+                while (operators.isNotEmpty() && precedence(operators.peek()) >= precedence(ch))
                     values.push(applyOp(operators.pop(), values.pop(), values.pop()))
-                }
                 operators.push(ch)
             }
         }
         i++
     }
-
-    while (operators.isNotEmpty()) {
+    while (operators.isNotEmpty())
         values.push(applyOp(operators.pop(), values.pop(), values.pop()))
-    }
     return values.pop()
 }
+
 
 
 fun precedence(op: Char): Int {
